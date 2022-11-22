@@ -70,11 +70,11 @@ Status Writer::AddRecord(const Slice& slice) {
 
     RecordType type;
     const bool end = (left == fragment_length);
-    if (begin && end) {   /* 刚好装下 */
+    if (begin && end) {   /* 能装下一份完整的Record */
       type = kFullType;
-    } else if (begin) {   /* 一个 Block 无法装下 */
+    } else if (begin) {   /* 仅能装下Record的头 */
       type = kFirstType;
-    } else if (end) {     /* 能装下上一份数据 */
+    } else if (end) {     /* 能装下Record的尾，根据else-if知道该Record的头装在之前 */
       type = kLastType;
     } else {              /* 其它的中间状态 */
       type = kMiddleType;

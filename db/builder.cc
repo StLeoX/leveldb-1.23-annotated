@@ -15,7 +15,7 @@
 namespace leveldb {
 
 /*
- * BuildTable 除了 Build New SSTable 之外，还会使用 meta 指针记录下 New SSTable 的元信息，
+ * BuildTable 除了 Build New SSTable 之外，还会使用 meta 指针记录下 New SSTable 的元信息以返回
  * */
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
