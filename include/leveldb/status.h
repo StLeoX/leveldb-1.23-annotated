@@ -102,7 +102,7 @@ class LEVELDB_EXPORT Status {
   //    state_[0..3] == length of message
   //    state_[4]    == code
   //    state_[5..]  == message
-  // 分配在堆上的错误状态，如果是成功的话，state_ 的值为 nullptr
+  // SUCCESS <=> state_ == nullptr
   const char* state_;
 };
 

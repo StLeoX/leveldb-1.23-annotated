@@ -118,7 +118,8 @@ class SkipList {
   enum { kMaxHeight = 12 };
 
   inline int GetMaxHeight() const {
-    // 简单的原子性取出层高，无所谓指令重排
+    // std::memory_order_relaxed:
+    // 1.原子执行；2.线程内具备happens-before关系，线程间乱序。
     return max_height_.load(std::memory_order_relaxed);
   }
 
@@ -300,11 +301,11 @@ int SkipList<Key, Comparator>::RandomHeight() {
   int height = 1;
   // (rnd_.Next() % kBranching) == 0 这个条件限制了上层的节点数量为下层节点数量的 1/4
   // 照此推算，如果根节点的节点数为 1，并且总计有 12 层的话，那么就有 1 + 4 + 16 + ... + 4^11 个节点
-  // 差不多 500 多万数据，理论上来说应该是不可能写满的，因为 Memory Write Buffer 有容量限制
+  // 差不多 500 多万数据
+  // 理论上来说应该是不可能写满的（因为 Memory Write Buffer 有容量限制），故assert(height <= kMaxHeight)
   while (height < kMaxHeight && ((rnd_.Next() % kBranching) == 0)) {
     height++;
   }
-  // 下面这两个 assert 是为了什么?
   assert(height > 0);
   assert(height <= kMaxHeight);
   return height;

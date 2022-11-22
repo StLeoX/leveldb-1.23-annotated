@@ -29,7 +29,7 @@ static const int kNumLevels = 7;
 static const int kL0_CompactionTrigger = 4;
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
-/* 当 Level-0 的 SSTable 数量达到 8 时，将会减缓 leveldb 的写入速率，其实就是睡眠 1 秒。
+/* 当 Level-0 的 SSTable 数量达到 8 时，将会减缓 leveldb 的写入速率，其实就是延迟 1 毫秒。
  * 具体的代码逻辑可参考 db_impl.cc/MakeRoomForWrite() 方法 */
 static const int kL0_SlowdownWritesTrigger = 8;
 

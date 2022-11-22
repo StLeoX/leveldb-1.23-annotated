@@ -80,6 +80,7 @@ class MemTable {
   };
 
   /* 使用 Skip List 来实现 MemTable */
+  // 完成特化：Key -> const char *, 显然是hashable的。
   typedef SkipList<const char*, KeyComparator> Table;
 
   ~MemTable();  // Private since only Unref() should be used to delete it

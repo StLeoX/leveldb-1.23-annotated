@@ -1242,9 +1242,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   /* 确定写入策略，写入策略与 Level-0 的 SSTable 数量有关，具体的枚举值定义在 dbformat.h 中
    *
    * - 当 Level-0 的文件数量达到阈值 kL0_SlowdownWritesTrigger = 8 时，会延迟 1ms 写入，
-   *   等待 Level-0 向下 Compaction。本质上就是 sleep 1 毫秒。
+   *   等待 Level-0 向下 Compaction。
    * - 当 Level-0 的文件数量达到阈值 kL0_StopWritesTrigger = 12 时，将会停止写入，等待
-   *   Level-0 向下 Compaction */
+   *   Level-0 向下 Compaction。 */
   Status status = MakeRoomForWrite(updates == nullptr);
   /* 获取最后的 Sequence Number */
   uint64_t last_sequence = versions_->LastSequence();
@@ -1360,6 +1360,15 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
+/** 写前准备工作
+ * “慢写入”条件：
+ * 1.${allow_delay} 允许慢写入；
+ * 2.${kL0_SlowdownWritesTrigger} 触发慢写入的Level-0的文件数；
+ * 3.${write_buffer_size} 触发慢写入的MemTable内存占用；
+ * @param force 指定${allow_delay}
+ *
+ * 源码上，采用else-if结构，偏向于if语义而非switch语义，所以对各个条件的检验是串行执行的。
+ */
 Status DBImpl::MakeRoomForWrite(bool force) {
   mutex_.AssertHeld();
   assert(!writers_.empty());
@@ -1382,19 +1391,18 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
       mutex_.Unlock();
-      /* Microseconds 和 Milliseconds 傻傻分不清，这里将睡眠 1 毫秒 */
-      env_->SleepForMicroseconds(1000);
+      env_->SleepForMicroseconds(1000);  /* 1000us == 1ms */
       allow_delay = false;  // Do not delay a single write more than once
       mutex_.Lock();
     } else if (!force &&
                (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable
       /* 当前 MemTable 未满(小于等于 4MB)，可以进行写入 */
-      break;
+      break;  // return OK
     } else if (imm_ != nullptr) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
-      /* 等待 Immutable MemTable 刷盘 */
+      /* 等待 Immutable MemTable 异步刷盘 */
       Log(options_.info_log, "Current memtable full; waiting...\n");
       background_work_finished_signal_.Wait();
     } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
@@ -1413,7 +1421,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       uint64_t new_log_number = versions_->NewFileNumber();
       WritableFile* lfile = nullptr;
 
-      /* 生成新的预写日志文件 */
+      /* 创建新的预写日志文件（WAL文件） */
       s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
       if (!s.ok()) {
         // Avoid chewing through file number space in a tight loop.
@@ -1422,11 +1430,12 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       }
       delete log_;
       delete logfile_;
+      /* 替换旧的WAL文件，实际上就是一次指针的赋值 */
       logfile_ = lfile;
       logfile_number_ = new_log_number;
       log_ = new log::Writer(lfile);
 
-      /* 将 MemTable 转换成 Immutable MemTable */
+      /* 将 MemTable 转换成 Immutable MemTable，实际上就是一次指针的赋值 */
       imm_ = mem_;
       has_imm_.store(true, std::memory_order_release);
       /* 初始化一个新的 MemTable */

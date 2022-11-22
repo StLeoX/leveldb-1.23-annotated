@@ -39,18 +39,19 @@ void WriteBatch::Clear() {
 
 size_t WriteBatch::ApproximateSize() const { return rep_.size(); }
 
+// 执行层的WriteBatch的写入行为
 Status WriteBatch::Iterate(Handler* handler) const {
-  Slice input(rep_);
+  Slice input(rep_);  // write input
   if (input.size() < kHeader) {
     return Status::Corruption("malformed WriteBatch (too small)");
   }
 
   input.remove_prefix(kHeader);
   Slice key, value;
-  int found = 0;
-  while (!input.empty()) {
+  int found = 0;  // count of elements in rep_
+  while (!input.empty()) {  // eats bytes and steps forward
     found++;
-    char tag = input[0];
+    char tag = input[0];  // eats `ValueType`
     input.remove_prefix(1);
     switch (tag) {
       case kTypeValue:
