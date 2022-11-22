@@ -1,11 +1,10 @@
-
 ## leveldb 源码阅读
 
 ![](leveldb.png)
 
 ### 1. Build && Install && Debug
 
-leveldb 本身是一个 Key-Value 存储引擎，因此并没有提供 `main` 入口函数，所以需要自行添加。笔者将其放到了 `debug/leveldb_debug.cc` 文件中，并在 `CMakeLists.txtx` 中将其加入:
+leveldb 本身是一个 Key-Value 存储引擎，因此并没有提供 `main` 入口函数，所以需要自行添加。笔者将其放到了 `debug/leveldb_debug.cc` 文件中，并在 `CMakeLists.txt` 中将其加入:
 
 ```bash
   leveldb_test("util/env_test.cc")
@@ -24,8 +23,6 @@ make && make install
 gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进行 gdb 调试
 ```
 
-如果使用 CLion 的话，可以直接对 `leveldb_debug.cc` 进行 debug，比 gdb 要更方便一些。
-
 ### 2. leveldb 核心流程梳理
 
 1. leveldb 概述与 LSM-Tree
@@ -38,5 +35,5 @@ gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进
 8. [SSTable(03)—SSTable 之索引](/debug/articles/08-SSTable-index/README.md)
 9. [SSTable(04)—Table Builder](/debug/articles/09-SSTable-table-builder/README.md)
 10. [Compaction(01)—Minor Compaction](/debug/articles/10-minor-compaction/README.md)
-11. [leveldb 版本控制概览](/debug/articles/11-version-control-overview/README.md)    
+11. [leveldb 版本控制概览](/debug/articles/11-version-control-overview/README.md)
 12. Compaction(02)—Major Compaction
