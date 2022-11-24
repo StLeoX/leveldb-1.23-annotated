@@ -57,9 +57,9 @@ class MemTable {
 
   // Add an entry into memtable that maps key to value at the
   // specified sequence number and with the specified type.
-  // Typically value will be empty if type==kTypeDeletion.
+  // Typically, the value will be empty if type==kTypeDeletion.
   /* 注意 MemTable 并没有实现 update 和 delete 方法，而是使用 Add() 方法去做追加，并且
-   * 删除的 Key 会被打上 `kTypeDeletion` 的标记 */
+   * 删除的 Key 会被打上 `kTypeDeletion` 的标记。追加实现了C和D，并结合Merge实现了U。 */
   void Add(SequenceNumber seq, ValueType type, const Slice& key,
            const Slice& value);
 

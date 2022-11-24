@@ -57,14 +57,14 @@ Status WriteBatch::Iterate(Handler* handler) const {
       case kTypeValue:
         if (GetLengthPrefixedSlice(&input, &key) &&
             GetLengthPrefixedSlice(&input, &value)) {
-          handler->Put(key, value);
+          handler->Put(key, value);  // callback the `Put` of handler
         } else {
           return Status::Corruption("bad WriteBatch Put");
         }
         break;
       case kTypeDeletion:
         if (GetLengthPrefixedSlice(&input, &key)) {
-          handler->Delete(key);
+          handler->Delete(key);  // callback the `Delete` of handler
         } else {
           return Status::Corruption("bad WriteBatch Delete");
         }

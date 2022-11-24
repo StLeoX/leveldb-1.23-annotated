@@ -31,6 +31,10 @@ class Block {
  private:
   class Iter;
 
+  /** the design of `restart point`
+   * restart point is used for prefix compacting, based on `dictionary order`
+   * @return number of restart points
+   */
   uint32_t NumRestarts() const;
 
   const char* data_;

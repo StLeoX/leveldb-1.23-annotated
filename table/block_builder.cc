@@ -59,6 +59,13 @@ size_t BlockBuilder::CurrentSizeEstimate() const {
           sizeof(uint32_t));                     // Restart array length
 }
 
+/** 向 Block 添加 Restart Point 相关信息，完成构建\n
+ * 核心逻辑：\n
+ * 1.转储 restarts_ 数组；
+ * 2.设置 finished_ 状态为 true；
+ * 3.返回 buffer_；
+ * @return Internal Buffer as a slice
+ */
 Slice BlockBuilder::Finish() {
   /* 压入 restarts_ 数组中的全部内容至 buffer_ */
   for (size_t i = 0; i < restarts_.size(); i++) {
@@ -72,20 +79,29 @@ Slice BlockBuilder::Finish() {
   return Slice(buffer_);
 }
 
+/** 向 Block 添加 Record（键值对）\n
+ * 核心逻辑：\n
+ * 1.检查追加的Block的有序性；\n
+ * 2.统计公共前缀长度，并压入共享部分和非共享部分\n
+ * 3.统计和重置Restart Point\n
+ * @param key User Key
+ * @param value User Value
+ */
 void BlockBuilder::Add(const Slice& key, const Slice& value) {
   /* 获取 last_key_ */
   Slice last_key_piece(last_key_);
   assert(!finished_);
   assert(counter_ <= options_->block_restart_interval);
-  /* 要么 buffer_ 为空，要么 key 大于最后一个被添加到 Block 中的 Key */
+  /* 要么 buffer_ 为空，要么 key 大于最后一个被添加到 Block 中的 Key
+   * 这来源于对调用者的期望 */
   assert(buffer_.empty()  // No values yet?
          || options_->comparator->Compare(key, last_key_piece) > 0);
 
-  size_t shared = 0;
+  size_t shared = 0; /* 记录公共前缀长度 */
 
   /* 如果 counter_ < block_restart_interval 的话，说明还没有到重启点，直接进行前缀压缩处理 */
   if (counter_ < options_->block_restart_interval) {
-    /* last_key_ 就像链表里面儿的 prev 指针一样，只需要计算当前 User Key 和 last_key_ 有多少重合度即可 */
+    /* last_key_ 就像链表里面的 prev 指针一样，只需要计算当前 User Key 和 last_key_ 有多少重合度即可 */
     const size_t min_length = std::min(last_key_piece.size(), key.size());
     /* 统计前缀长度 */
     while ((shared < min_length) && (last_key_piece[shared] == key[shared])) {
@@ -93,24 +109,24 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
     }
   } else {
     /* 此时 counter_ 必然等于 block_restart_interval，需要建立新的重启点 */
-    restarts_.push_back(buffer_.size());
-    counter_ = 0;
+    restarts_.push_back(buffer_.size());  /* 记录该Point的偏移 */
+    counter_ = 0;  /* 重置计数器 */
   }
 
   /* 获取 key 和 last_key_ 的非共享长度 */
   const size_t non_shared = key.size() - shared;
 
-  /* 使用变长编码，将 "<shared><non_shared><value_size>" 写入 buffer_ */
+  /* 使用变长编码，将 "Key 共享长度 | Key 非共享长度 | Value 长度" 压入 buffer_ */
   PutVarint32(&buffer_, shared);
   PutVarint32(&buffer_, non_shared);
   PutVarint32(&buffer_, value.size());
 
-  /* 将 User Key 非共享内容压入 buffer_ */
+  /* 将 "Key 非共享内容" 压入 buffer_ */
   buffer_.append(key.data() + shared, non_shared);
-  /* 将完整的 Value 压入 buffer_ */
+  /* 将完整的 "Value 内容" 压入 buffer_ */
   buffer_.append(value.data(), value.size());
 
-  /* 更新 last_key_ 为当前 User Key */
+  /* 重置 last_key_ 为当前 User Key */
   last_key_.resize(shared);
   last_key_.append(key.data() + shared, non_shared);
   assert(Slice(last_key_) == key);

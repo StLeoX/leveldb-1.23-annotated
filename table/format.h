@@ -18,12 +18,13 @@ class Block;
 class RandomAccessFile;
 struct ReadOptions;
 
-// BlockHandle is a pointer to the extent of a file that stores a data
+// BlockHandle is a pointer to the offset of a file that stores a data
 // block or a meta block.
 class BlockHandle {
  public:
   // Maximum encoding length of a BlockHandle
-  /* BlockHandle 的最大长度，即 20 字节。为啥是 20 字节? */
+  /* BlockHandle 的最大长度，即 20 字节。
+   * 20 字节的索引上界是 2^20-1，约 1M 个Block。*/
   enum { kMaxEncodedLength = 10 + 10 };
 
   BlockHandle();
@@ -52,7 +53,8 @@ class Footer {
   // Footer will always occupy exactly this many bytes.  It consists
   // of two block handles and a magic number.
 
-  /* 固定大小，48 字节，不足 48 字节时将使用 padding 填充 */
+  /* 固定大小，48 字节，不足 48 字节时将使用 padding 填充
+   * 字节数：n_padding = 40 - n_meta_index_handle_used - data_index_handle_used */
   enum { kEncodedLength = 2 * BlockHandle::kMaxEncodedLength + 8 };
 
   Footer() = default;
