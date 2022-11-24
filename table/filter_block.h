@@ -34,32 +34,30 @@ class FilterBlockBuilder {
   FilterBlockBuilder(const FilterBlockBuilder&) = delete;
   FilterBlockBuilder& operator=(const FilterBlockBuilder&) = delete;
 
-  /* 开始构建新的 Filter Block */
+  /* 开始构建 Filter Block */
   void StartBlock(uint64_t block_offset);
 
-  /*添加一个新的 key，将在 `TableBuilder` 中被调用*/
+  /* 向 Filter Block 添加一个新的 key */
   void AddKey(const Slice& key);
 
-  /*结束 Filter Block 的构建，并返回 Filter Block 的完整内容*/
+  /* 完成构建，并返回 Filter Block 的全部内容 */
   Slice Finish();
 
  private:
   void GenerateFilter();          /* 构建一个 Filter */
 
   const FilterPolicy* policy_;    /* filter 类型，如 BloomFilterPolicy */
-  std::string keys_;              /* User Keys，全部塞到一个 string 中 */
+  std::string keys_;              /* User Keys 依次存入一个 string 中 */
   std::vector<size_t> start_;     /* 每一个 User Key 在 keys_ 中的起始位置 */
-  std::string result_;            /* keys_ 通过 policy_ 计算出来的 filtered data */
-  std::vector<Slice> tmp_keys_;   /* policy_->CreateFilter() 的参数 */
-
-  /* filter 在 result_ 中的位置, filter_offsets_.size() 就是 Bloom Filter 的数量 */
-  std::vector<uint32_t> filter_offsets_;
+  std::string result_;            /* keys_ 通过 filter 计算出来的 filtered data */
+  std::vector<uint32_t> filter_offsets_;    /* filter 在 result_ 中的位置 */
 };
 
 class FilterBlockReader {
  public:
   // REQUIRES: "contents" and *policy must stay live while *this is live.
   FilterBlockReader(const FilterPolicy* policy, const Slice& contents);
+  // 传入 Data Block 的偏移和键（逻辑类型为 `InternalKey`），判断从属关系
   bool KeyMayMatch(uint64_t block_offset, const Slice& key);
 
  private:

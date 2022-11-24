@@ -2,7 +2,7 @@
 
 ![Alt text](images/1629167804004.png)
 
-本节描述 SSTable 第二个关键组成部分，Meta Block。Meta Block 存在的目的就是为了优化 SSTable 的读取性能，leveldb 使用 Bloom Filter 作为 Filter 的具体实现，用于快速判断某一个 User Key 是否存在于当前查找的 SSTable 中。若 Bloom Filter 给出了 `false` 的答案，那么待查找 User Key 必然不在当前 SSTable 中。若给出了 `true` 的答案，待查找 User Key 也不一定会在当前 SSTable 中，因为 Bloom Filter 存在“假阳性”的可能。
+本节描述 SSTable 第二个关键组成部分，Meta Block。Meta Block 存在的目的就是为了优化 SSTable 的读取性能，leveldb 使用 Bloom Filter 作为 Filter 的具体实现，用于快速判断某一个 User Key 是否存在于当前查找的 SSTable 中。若 Bloom Filter 给出了 `false` 的答案，那么待查找 User Key 必然不在当前 SSTable 中。若给出了 `true` 的答案，待查找 User Key 也不一定会在当前 SSTable 中，因为 Bloom Filter 存在“**假阳性（False Positive）**”的可能。
 
 ## 1. Bloom Filter
 
@@ -120,7 +120,7 @@ leveldb 采用的是按照固定大小进行划分，目前划分的大小为 2K
 比如说我们想要获取 `keys_` 中的第 i 个 Key，就可以使用:
 
 ```cpp
-const chr *base = keys_.data() + start[i];   /* 取得第 i 个 key 的起始地址 */
+const char *base = keys_.data() + start[i];   /* 取得第 i 个 key 的起始地址 */
 size_t length = start_[i + 1] - start_[i];   /* 取得第 i 个 key 的长度 */
 Slice key = Slice(base, length);             /* 通过 Slice 构造 key */
 ```
