@@ -48,9 +48,9 @@ class FilterBlockBuilder {
 
   const FilterPolicy* policy_;    /* filter 类型，如 BloomFilterPolicy */
   std::string keys_;              /* User Keys 依次存入一个 string 中 */
-  std::vector<size_t> start_;     /* 每一个 User Key 在 keys_ 中的起始位置 */
+  std::vector<size_t> start_;     /* 各个 User Key 在 keys_ 中的偏移（起始位置） */
   std::string result_;            /* keys_ 通过 filter 计算出来的 filtered data */
-  std::vector<uint32_t> filter_offsets_;    /* filter 在 result_ 中的位置 */
+  std::vector<uint32_t> filter_offsets_;    /* filter 在 result_ 中的偏移 */
 };
 
 class FilterBlockReader {

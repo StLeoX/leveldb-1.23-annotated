@@ -32,7 +32,7 @@ struct Table::Rep {
   const char* filter_data;
 
   BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
-  Block* index_block;
+  Block* index_block;  // Point to the index block
 };
 
 Status Table::Open(const Options& options, RandomAccessFile* file,

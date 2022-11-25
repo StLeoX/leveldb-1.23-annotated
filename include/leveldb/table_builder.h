@@ -51,7 +51,7 @@ class LEVELDB_EXPORT TableBuilder {
   // Add key,value to the table being constructed.
   // REQUIRES: key is after any previously added key according to comparator.
   // REQUIRES: Finish(), Abandon() have not been called
-  /* 向 TableBuilder 中添加 Key-Value */
+  /* 向 Table 中添加 Key-Value */
   void Add(const Slice& key, const Slice& value);
 
   // Advanced operation: flush any buffered key/value pairs to file.
@@ -79,7 +79,7 @@ class LEVELDB_EXPORT TableBuilder {
   void Abandon();
 
   // Number of calls to Add() so far.
-  /* 一共添加了多少 Key-Value 对 */
+  /* 一共添加了多少 Key-Value */
   uint64_t NumEntries() const;
 
   // Size of the file generated so far.  If invoked after a successful

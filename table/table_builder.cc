@@ -18,6 +18,16 @@
 
 namespace leveldb {
 
+/** Internal Representation\n
+ * Including: \n
+ * 1.options;\n
+ * 2.file handler\n
+ * 3.Data Block initial offset\n
+ * 4.Data Block last key\n
+ * 5.BlockBuilder for Data Block, Index Block and Filter Block\n
+ * 6.BlockHandle for Index Block\n
+ * 7.Other stastes\n
+ */
 struct TableBuilder::Rep {
   Rep(const Options& opt, WritableFile* f)
       : options(opt),
@@ -91,13 +101,16 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   return Status::OK();
 }
 
-/* 此时的 key 仍然为 InternalKey，也就是 User Key + Sequence Number | Value Type */
+/** 向 Table 中添加 Key-Value\n
+ * @param key 键（逻辑类型为 `InternalKey`，即 "User Key | Sequence Number | Value Type" ）
+ * @param value 值
+ */
 void TableBuilder::Add(const Slice& key, const Slice& value) {
   Rep* r = rep_;
-  assert(!r->closed);   /* 判断当前 Build 过程是否结束 */
+  assert(!r->closed);   /* 断言状态：Finish(), Abandon() 未被调用 */
   if (!ok()) return;
   if (r->num_entries > 0) {
-    /* 判断当前 key 是否大于 last_key */
+    /* 断言追加 key 的有序性 */
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
 
@@ -137,6 +150,8 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   }
 }
 
+/** 结束当前 Block 的构建\n
+ */
 void TableBuilder::Flush() {
   Rep* r = rep_;
   assert(!r->closed);
@@ -223,10 +238,19 @@ void TableBuilder::WriteRawBlock(const Slice& block_contents,
 
 Status TableBuilder::status() const { return rep_->status; }
 
+/** 结束 Table 的构建\n
+ * 核心逻辑：\n
+ * 1.写入最后的 Data Block；\n
+ * 2.写入全部的 Meta Block；\n
+ * 3.写入单个的 Metaindex Block；\n
+ * 4.写入全部的 Index Block；\n
+ * 5.写入单个的 Footer；\n
+ * @return 状态码
+ */
 Status TableBuilder::Finish() {
   Rep* r = rep_;
 
-  /* 将最后一个 Data Block 写入 */
+  // Write last data block
   Flush();
   assert(!r->closed);
   r->closed = true;
@@ -284,6 +308,8 @@ Status TableBuilder::Finish() {
   return r->status;
 }
 
+/** 放弃 Table 的构建\n
+ */
 void TableBuilder::Abandon() {
   Rep* r = rep_;
   assert(!r->closed);

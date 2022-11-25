@@ -103,19 +103,19 @@ private:
 
 在阅读具体实现之前需要先理清 Filter Block 的具体格式，在 `doc/table_format.md` 中有给出相应的说明。
 
-首先，Filter Block 的作用就是对 SSTable 中 Data Block 的所有 User Key 建立布隆过滤器，并将结果（string 对象）写入到 Filter Block 中。如果说我们把所有的 User Key 都放在一个 Bloom Filter 中的话，按照 `bits_per_key` 为 10 来计算的话，就有如下计算过程:
+首先，Filter Block Builder 的作用就是对 SSTable 中 Data Block 的所有 User Key 建立布隆过滤器，并将结果（以 string 保存）写入到 Filter Block 中。如果说我们把所有的 User Key 都放在一个 Bloom Filter 中的话，按照 `bits_per_key` 为 10 来计算的话，就有如下计算过程:
 
 假设 User Key 和 User Value 的平均长度为 32 字节，再加上辅助的 varint 字段，一条记录假设占用 70 字节的长度。一个 SSTable 的默认大小为 2MB，那么就可以存放 `2 * 1024 * 1024 / 70`，约为 3 万条记录。也就是说，布隆过滤器底层使用的位数组长度为 `30000 * 10 = 300000`，大约为 300KB。
 
 在查询 SSTable 中，首先会去 Bloom Filter 中判断待查找 User Key 是否在当前 SSTable 中，那么就需要将这 300KB 的 Filter Result 全部读取到内存中进行判断，而常见的 I/O Buffer Size 大小为 4KB，也就是说，需要多次 I/O 才能将数据读取至内存。
 
-**为了减少 I/O 时间，我们完全可以将单一的 Bloom Filter 划分成多个 Bloom Filter，每一个 Bloom Filter 只负责一部分的 User Key，并且由于 User Key 在 SSTable 中是有序存储的，因此可以很方便地建立 Filter Result 的索引**。这其实就是 Filter Block 和 Metaindex Block 所做的事情。
+**为了减少 I/O 时间，我们完全可以将单一的 Bloom Filter 划分成多个 Bloom Filter（“分区索引”的思想），每一个 Bloom Filter 只负责一部分的 User Key，并且由于 User Key 在 SSTable 中是有序存储的，因此可以很方便地建立 Filter Result 的索引**。这其实就是 Filter Block 和 Metaindex Block 所做的事情。
 
-leveldb 采用的是按照固定大小进行划分，目前划分的大小为 2KB，也就是在 Data Block 中，每 2KB 的 User Key 和 User Value 就会有一个 Bloom Filter Result，如下图所示:
+leveldb 采用的是按照固定条数进行划分，目前划分的条数为 2KB，也就是针对 Data Block，每 2KB 条 User Key + User Value 就会建立一个 Bloom Filter Result。是连续追加的，如下图所示:
 
 ![Alt text](images/1629358798391.png)
 
-这里再对 `keys_`、`start_` 、`result_` 以及 `filter_offsets_` 做一个简单的解释。leveldb 中在存储 User Key 的时候，很少使用 `vector`，基本上都是使用 `string` 进行压缩存储的。因此，我们就需要使用一个额外的数组来充当 `string` 的索引，要不然我们也不知道一个 User Key 从哪里开始哪里结束，`start_` 和 `filter_offsets_` 就是干这个事儿的。
+这里再对 `keys_`、`start_` 、`result_` 以及 `filter_offsets_` 做一个简单的解释。leveldb 中在存储 User Key 的时候，很少使用 `vector`，基本上都是使用 `string` 进行压缩存储的。因此，我们就需要使用一个额外的数组来保存各个 `sub string` 的索引，要不然我们也不知道一个 User Key 从哪里开始哪里结束。`start_` 和 `filter_offsets_` 就是干这个事儿的，前者保存的是各个 User Key 的偏移，后者保存的是各个 filter 的偏移。
 
 比如说我们想要获取 `keys_` 中的第 i 个 Key，就可以使用:
 
@@ -159,7 +159,7 @@ void FilterBlockBuilder::StartBlock(uint64_t block_offset) {
 }
 ```
 
-`GenerateFilter()` 方法用于构建一个具体的 Filter Block K，其内部将会调用 `policy_->CreateFilter` 创建一个布隆过滤器，并将结果位数组（string 实现）返回。
+`GenerateFilter()` 方法用于构建一个具体的 Filter，其内部将会调用 `policy_->CreateFilter` 创建一个布隆过滤器，并将结果位数组（以 string 保存）返回。
 
 ```cpp
 void FilterBlockBuilder::GenerateFilter() {
