@@ -1,14 +1,52 @@
-# Minor Compaction
+## Compaction Strategy
 
-Compaction 一共可分为三种: Minor Compaction、Major Compaction 以及 Seek Compaction。
+> [ref: LSM Tree-Based存储引擎的compaction策略比较](https://www.jianshu.com/p/e89cd503c9ae)  
+> [ref: Leveled Compaction in RocksDB](http://rocksdb.org.cn/doc/leveled-compaction.html)  
+> [ref: This post revealed the performance of size-tiered compaction.](https://www.scylladb.com/2018/01/17/compaction-series-space-amplification)  
+> [ref: This post revealed the performance of leveled compaction.](https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/)
 
-其中 Minor Compaction 特指将位于内存中的 Immutable MemTable 持久化至硬盘中。Major Compaction 则是 leveldb 运行中最为核心的数据合并过程，主要是将位于不同层级的 SSTable 进行合并，以减少同一个 Key 的存储空间。Seek Compaction 则主要用于优化查询效率，后文将会详述此过程。
+从 LSMTree 的名字就知道 Merge 操作是核心。Merge 也被称为 Compact，因为 Merge SSTable 的过程中必然会清除掉一些无效的 InternalKey，从而减少磁盘开销。  
+主流的 Compaction 策略包括 size-tiered compaction 和 leveled compaction。同样是分区存储，前者采用单文件的方式，限制分区下的 SSTable 的大小；后者采用多文件的方式，限制分区下的 SSTable 数量。  
+那么如何衡量一个 Compaction 策略的好坏？可以类似于衡量算法性能，从时间和空间两方面进行。
+
+### Time Complexity
+
+在存储领域，需要注意到数据的操作耗时实际上是与数据的规模有紧密联系的。  
+针对写操作，需要评估 compact耗时/compact数据量 的比值；  
+针对读操作，二分查找的方式已经决定了读操作的时间复杂性上界，而数据量则是明确了操作耗时，所以 compact 操作减少数据量能提升查询效率。
+
+### Space Complexity
+
+在存储领域空间复杂性才是考量的重点，需要在以下三个指标间权衡：
+
+1. 读放大效果：读取数据时实际读取的数据量大于真正的数据量。例如在LSM树中需要先在MemTable查看当前key是否存在，不存在继续从SSTable中寻找。
+2. 写放大效果：写入数据时实际写入的数据量大于真正的数据量。例如在LSM树中写入时可能触发Compact操作，导致实际写入的数据量远大于该key的数据量。
+3. 空间放大效果：数据实际占用的磁盘空间比数据的真正大小更多。上面提到的冗余存储，对于一个key来说，只有最新的那条记录是有效的，而之前的记录都是可以被清理回收的。
+
+从结果来看，size-tiered compaction 存在**空间放大**的缺陷，leveled compaction 存在**写放大**的缺陷。所以产生了一个优化点，即将两种策略进行混合。  
+RocksDB 的做法是，在L1层及以上采用 leveled compaction，而在L0层采用 size-tiered compaction（在 RocksDB 中也称为 universal compaction）。如下图所示：  
+![RocksDB hybrid compaction](./images/RocksDB%20hybrid%20compaction.webp)
+
+### Compaction Stages
+
+Compaction 一共可分为三种（三阶段）: Minor Compaction、Major Compaction 以及 Seek Compaction。
+
+1. Minor Compaction 特指将位于内存中的 Immutable MemTable 持久化至硬盘中。
+2. Major Compaction 则是 leveldb 运行中最为核心的数据合并过程，主要是将位于不同层级的 SSTable 进行合并，以减少同一个 Key 的存储空间。
+3. Seek Compaction 则主要用于优化查询效率，后文将会详述此过程。
+
+### Parallel Compaction
+
+在 Major Compaction 过程中，如果两个 Compact 操作**是不相交的**，那么显然可以将这些操作分散到多个线程中去。（实际上，这也是 RocksDB 的一个优化点。）
+
+## Minor Compaction
 
 Minor Compaction 相对于其它两者要更简单一些，并且是所有 SSTable 的“出生地”，即在 Minor Compaction 中，将会调用上一篇提到的 `BuildTable()` 方法创建 SSTable，并将 Immutable MemTable 的内容写入。
 
-## 1. 何时触发 Minor Compaction?
+### Minor Compaction 的触发时机
 
-在前面的 [leveldb Key-Value 写入流程分析](https://github.com/SmartKeyerror/reading-source-code-of-leveldb-1.23/blob/master/debug/articles/04-write-process/README.md) 一篇分析中，其实就有提到过 Minor Compaction。即**当 MemTable 已经没有剩余的写入空间，并且 Immutable MemTable 不存在时，会将当前的 MemTable 转变为 Immutable MemTable，并初始化一个新的 MemTable 以供写入，同时主动地触发 Minor Compaction**，即显式调用 `MaybeScheduleCompaction()` 方法。
+在前面的 [leveldb Key-Value 写入流程分析](https://github.com/SmartKeyerror/reading-source-code-of-leveldb-1.23/blob/master/debug/articles/04-write-process/README.md) 一篇分析中，其实就有提到过 Minor Compaction。即**当 MemTable 已经没有剩余的写入空间，并且 Immutable MemTable 不存在时，会将当前的 MemTable 转变为 Immutable MemTable，并初始化一个新的 MemTable
+以供写入，同时主动地触发 Minor Compaction**，即显式调用 `MaybeScheduleCompaction()` 方法。
 
 ![Alt text](images/1628835101487.png)
 
@@ -35,10 +73,10 @@ void DBImpl::MaybeScheduleCompaction() {
 }
 ```
 
-可以看到，该函数不接受任何参数，也就是说，到底该运行哪种 Compaction 是由 `DBImpl::BGWork` 所决定的。`env_->Schedule` 其实就是将 Compaction 任务提交至线程池中，由后台线程从工作队列中取出并执行之。
+可以看到，该函数不接受任何参数，也就是说，到底该运行哪种 Compaction 是由 `DBImpl::BGWork` 所决定的。`env_->Schedule` 其实就是将 Compaction 任务提交至任务队列中，由后台工作线程从任务队列中取出并执行。  
+任务队列是用户实现的单工作线程的 Event-Loop，db_impl 没有将 schedule 相关部分分离出来。这里实现的比较简洁，因为并非系统的 bottleneck，实际上调用 `libuv` 等库也是一种不错的选择。
 
-
-## 2. Minor Compaction 的具体过程
+### Minor Compaction 的具体过程
 
 Minor Compaction 的入口点为 `CompactMemTable()` 方法，方法内部主要调用 `WriteLevel0Table()` 方法。
 

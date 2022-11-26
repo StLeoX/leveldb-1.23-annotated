@@ -25,7 +25,7 @@ gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进
 
 ### 2. leveldb 核心流程梳理
 
-1. leveldb 概述与 LSM-Tree
+1. [leveldb 概述与 LSM-Tree](/debug/articles/01-introduction/README.md)
 2. [leveldb 中的常用数据结构](/debug/articles/02-data-structure/README.md)
 3. [leveldb 中的 varint 与 Key 组成](/debug/articles/03-varint-and-key-format/README.md)
 4. [leveldb Key-Value 写入流程分析](/debug/articles/04-write-process/README.md)
@@ -36,4 +36,4 @@ gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进
 9. [SSTable(04)—Table Builder](/debug/articles/09-SSTable-table-builder/README.md)
 10. [Compaction(01)—Minor Compaction](/debug/articles/10-minor-compaction/README.md)
 11. [leveldb 版本控制概览](/debug/articles/11-version-control-overview/README.md)
-12. Compaction(02)—Major Compaction
+12. [Compaction(02)—Major Compaction](/debug/articles/12-major-compaction/README.md)

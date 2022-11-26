@@ -778,8 +778,11 @@ PosixEnv::PosixEnv()
       mmap_limiter_(MaxMmaps()),
       fd_limiter_(MaxOpenFiles()) {}
 
-/* Schedule 方法比较简单，只是将对应的任务函数和函数参数推入至工作队列中，由 BackgroundThreadMain()
- * 方法取出任务并执行 */
+/** 新建任务并放入任务队列\n
+ * 任务队列是用户实现的单工作线程的 Event-Loop\n
+ * @param background_work_function 回调函数
+ * @param background_work_arg 及其参数
+ */
 void PosixEnv::Schedule(
     void (*background_work_function)(void* background_work_arg),
     void* background_work_arg) {

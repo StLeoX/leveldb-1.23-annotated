@@ -1,5 +1,3 @@
-
-
 # leveldb 版本控制概览
 
 在上一篇文章中我们明确了 Minor Compaction 的过程，本质上就是根据 Immutable MemTable 构建出 New SSTable，然后根据 New SSTable 和其它低层 level 之间 User Key 的重叠情况，决定将 New SSTable 逻辑地“推送”至具体的一个 level 中。
@@ -10,7 +8,7 @@
 
 我们现在已经知道了 leveldb 采用的是“追加写”的方式完成 K-V 的新增、修改和删除的，并且 leveldb 将磁盘中的 SSTable 采用逻辑分区的方式进行了分层处理，那么 level 和 level 所包含的 SSTable 信息就需要保存下来，以便于后续的查找和 Compaction 操作。同时，leveldb 还需要持久化元数据，例如 WAL Log Numer、Sequence Number 以及 Next SSTable File Number 等信息，保证 leveldb 在异常 Crash 之后能够完全地恢复至宕机之前的状态。
 
-leveldb 是通过版本控制的方式来记录上述关键信息的，其过程和 Git 工作流程非常之类似:
+leveldb 是通过版本控制的方式来记录上述关键信息的，其过程和 Git-SCM 工作流程非常之类似:
 
 - 初始化一个 Empty Repo（DB 初始化）;
 - 对文件进行新增、修改和删除时，Git 会记录下这一增量的操作（新增一个 VersionEdit）;
@@ -27,6 +25,9 @@ Version N + VersionEdit => Version N+1
 那么，当我们把所有的版本都扔到一个集合中，比如 Version 1、Version 2、...、Version N，就得到了所有版本的集合，也就是 VersionSet，如下图所示:
 
 ![Alt text](images/1630899522477.png)
+
+> 关于 Version 的作用，有别于 `MVCC` 的概念，应该多从 Clickhouse 的 `VersionedCollapsingMergeTree` 的概念来思考
+> [ref](https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/versionedcollapsingmergetree)
 
 ## 2. 记录 SSTable 元数据: `FileMetaData`
 
@@ -77,7 +78,7 @@ private:
 
 ## 3. `Version` 与 `VersionSet`
 
-前面我们已经描述了 SSTable 元数据 `FileMetaData` 和增量修改 `VersionEdit`，那么 `VersionEdit` + `FileMetaData` 就可以得到当前数据库的一个版本，也就是 `Version`。多个 `Version` 组合起来就得到了 `VersionSet`，`VersionSet` 本质上其实就是一个双向链表。
+前面我们已经描述了 SSTable 元数据 `FileMetaData` 和增量修改 `VersionEdit`，那么 `VersionEdit` + `FileMetaData` 就可以得到当前数据库的一个版本，也就是 `Version`。多个 `Version` 组合起来就得到了 `VersionSet`，`VersionSet` 实现为一个双向链表。
 
 ```cpp
 class Version {

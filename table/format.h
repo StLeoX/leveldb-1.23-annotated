@@ -18,8 +18,11 @@ class Block;
 class RandomAccessFile;
 struct ReadOptions;
 
-// BlockHandle is a pointer to the offset of a file that stores a data
-// block or a meta block.
+/** BlockHandle is a pointer to the offset of a file,
+ * where a data block or a meta block starts. Stores:\n
+ * 1.the start of block;\n
+ * 2.the size of bolck;\n
+ */
 class BlockHandle {
  public:
   // Maximum encoding length of a BlockHandle

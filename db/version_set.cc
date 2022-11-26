@@ -119,12 +119,13 @@ static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
           ucmp->Compare(*user_key, f->smallest.user_key()) < 0);
 }
 
-/*
- * SomeFileOverlapsRange() 做的事情其实就是判断 New SSTable 和当前 level 是否存在重叠的 Key。
- *
- * disjoint_sorted_files 表示是否互斥，只有在计算 level 0 时该值为 false，其余情况为 true;
- * files 为每一层的 FileMetaData 记录，包括 level 0 层
- * */
+/** 判断 New SSTable 与当前 level 的 SSTables 是否相交（存在重叠的 Key）\n
+ * @param icmp
+ * @param disjoint_sorted_files 是否互斥，针对 level0 该值为 false，其余情况为 true
+ * @param files 各层的 FileMetaData 记录
+ * @param smallest_user_key New SSTable 的最小 Key
+ * @param largest_user_key New SSTable 的最大 Key
+ */
 bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            bool disjoint_sorted_files,
                            const std::vector<FileMetaData*>& files,
@@ -476,8 +477,12 @@ bool Version::OverlapInLevel(int level, const Slice* smallest_user_key,
                                smallest_user_key, largest_user_key);
 }
 
-/* 决定将 New SSTable 推送到哪一层，其中 smallest_user_key 与 largest_user_key
- * 表示 New SSTable 的最小 Key 值和最大 Key 值 */
+/** 决定将 New SSTable 推送到哪一层\n
+ *
+ * @param smallest_user_key New SSTable 的最小 Key
+ * @param largest_user_key New SSTable 的最大 Key
+ * @return level 序号
+ */
 int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
                                         const Slice& largest_user_key) {
   int level = 0;

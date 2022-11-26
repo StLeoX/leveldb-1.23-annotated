@@ -68,6 +68,7 @@ struct DBImpl::CompactionState {
         builder(nullptr),
         total_bytes(0) {}
 
+  // a const pointer to a non-const Compaction
   Compaction* const compaction;
 
   // Sequence numbers < smallest_snapshot are not significant since we
@@ -502,6 +503,13 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   return status;
 }
 
+/** 将 MemTable 转储到 L0-SSTable\n
+ * 核心逻辑：\n
+ *
+ * @param mem 待压缩的 Immutable MemTable
+ * @param edit Version 上下文
+ * @param base Version 上下文
+ */
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
   mutex_.AssertHeld();
@@ -553,6 +561,11 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   return s;
 }
 
+/** 针对 MemTable 的 Compact 过程\n
+ * 核心逻辑：\n
+ * 1.调用 `WriteLevel0Table` 新建 L0-SSTable；\n
+ * 2.记录 VersionEdit 并应用于 VersionSet；\n
+ */
 void DBImpl::CompactMemTable() {
   mutex_.AssertHeld();
   assert(imm_ != nullptr);
@@ -669,7 +682,15 @@ void DBImpl::RecordBackgroundError(const Status& s) {
   }
 }
 
-/* Compaction 入口函数 */
+/** Compact 过程入口\n
+ * 核心逻辑：\n
+ * 1.判断是否达到新建 Compact 任务的条件：\n
+ *   - 后台不存在正在执行的 Compact 任务；\n
+ *   - 无后台执行错误；\n
+ *   - DB 仍处于打开状态；\n
+ *   - 或是手动触发；\n
+ * 2.新建任务，入口为`BackgroundCall`；\n
+ */
 void DBImpl::MaybeScheduleCompaction() {
   mutex_.AssertHeld();
   if (background_compaction_scheduled_) {
@@ -682,8 +703,9 @@ void DBImpl::MaybeScheduleCompaction() {
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
-    /* 设置 background_compaction_scheduled_ 标志位，并将 BGWork 方法加入线程池中 */
+    /* 设置 background_compaction_scheduled_ 标志 */
     background_compaction_scheduled_ = true;
+    /* 将 `db->BackgroundCall()`回调放入任务队列 */
     env_->Schedule(&DBImpl::BGWork, this);
   }
 }
@@ -692,6 +714,9 @@ void DBImpl::BGWork(void* db) {
   reinterpret_cast<DBImpl*>(db)->BackgroundCall();
 }
 
+/** 辅助触发`MaybeScheduleCompaction`\n
+ * 处理 `background_compaction_scheduled_`, `shutting_down_` 等标志\n
+ */
 void DBImpl::BackgroundCall() {
   MutexLock l(&mutex_);
   assert(background_compaction_scheduled_);
@@ -700,6 +725,7 @@ void DBImpl::BackgroundCall() {
   } else if (!bg_error_.ok()) {
     // No more background work after a background error.
   } else {
+    // 启动后台 Compact 任务
     BackgroundCompaction();
   }
 
@@ -711,6 +737,9 @@ void DBImpl::BackgroundCall() {
   background_work_finished_signal_.SignalAll();
 }
 
+/**
+ *
+ */
 void DBImpl::BackgroundCompaction() {
   mutex_.AssertHeld();
 
@@ -1443,7 +1472,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
 
-      /* 主动触发 Compaction */
+      /* 主动触发 Minor Compaction */
       MaybeScheduleCompaction();
     }
   }

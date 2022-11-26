@@ -2,9 +2,14 @@
 
 ## 1. Slice
 
-Slice 是 leveldb 中使用最为频繁的数据结构，不管是 Write Batch，还是构建 SSTable，都需要 Slice 的重度参与。这里的 Slice 并不是 Go 语言中的切片，而是封装的 string 类型。
+Slice 是 leveldb 中使用最为频繁的数据结构，不管是 Write Batch，还是构建 SSTable，都需要 Slice 的重度参与。这里的 Slice 是一种封装的字节数组类型，类比于 std::string。
 
 C++ 中的 `std::string` 只提供了简单的 `push_back`、`pop_back` 等方法，诸如 `starts_with`、`remove_prefix` 等方法都没有提供。因此，leveldb 使用 `char *` 自行封装了 string 对象，以满足功能需要。
+
+Slice 的特性：
+
+1. 无生命周期：可以理解为寄存器变量，类似于 int，因为 data_ptr 所指向的字节数组的申请/释放是在别处完成的；
+2. 轻量：Slice 的拷贝开销仅存在于 const char \* 和 size_t，相当于两个 uint64_t 的拷贝开销。是 string_view 的简单实现；
 
 Slice 中的成员变量只有两个，一个是 `char` 类型的字符指针，另一个则是字符串的长度。此外，Slice 本身并不负责内存分配，只是简单地接收外部传入的指针对象。
 
@@ -109,7 +114,6 @@ Status::Status(Code code, const Slice& msg, const Slice& msg2) {
 Status 的结构如下图所示，在内部只需要使用 `state_[4]` 即可获得 Status 的具体状态:
 
 ![Alt text](images/1629467573260.png)
-
 
 ## 3. Skip List
 
