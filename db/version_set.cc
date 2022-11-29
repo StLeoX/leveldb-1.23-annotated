@@ -1076,7 +1076,11 @@ void VersionSet::MarkFileNumberUsed(uint64_t number) {
   }
 }
 
-/* 虽然函数名称叫做 Finalize，但实际上是在 pick 出下一次需要 Compaction 的 level */
+/** 选出下一次需要进行 Compact 的 level\n
+ * 核心逻辑：\n
+ *
+ * @param v Version 出参，写回 compaction_level_
+ */
 void VersionSet::Finalize(Version* v) {
   // Precomputed best level for next compaction
   int best_level = -1;
@@ -1102,7 +1106,7 @@ void VersionSet::Finalize(Version* v) {
     } else {
       /* 获取当前 level SSTables 实际大小 */
       const uint64_t level_bytes = TotalFileSize(v->files_[level]);
-      /* 计算 score 值，如果 level_bytes 超出阈值的话，那么 score 将大于 1 */
+      /* 计算 score 值，如果 level_bytes 超出阈值的话，那么 score 将大于1，即字节数之比大于1 */
       score = static_cast<double>(level_bytes) / MaxBytesForLevel(options_, level);
     }
 

@@ -92,6 +92,6 @@ Build SSTable 的过程可参考上一篇文章的内容，不再赘述。**新�
 
 ![Alt text](images/1630394788892.png)
 
-levledb 通过参数 `kMaxMemCompactLevel`（定义在 `db/dbformat.h`） 来控制 New SSTable 最高可被推到哪一层，默认值为 2，也将就是说，New SSTable 最多能够被推到 level 2 中。
+levledb 通过参数 `kMaxMemCompactLevel`（定义在 `db/dbformat.h`） 来控制 New SSTable 最高可被推到哪一层，默认值为 2，也将就是说，New SSTable 最多能够被推到 level 2 中。但是注意到总层数（`kNumLevels`）为 7，避免 New SSTable 被推得过远，也尊重了局部性原理。
 
 从优化查询的角度来说，New SSTable 在满足一定的条件时，应尽可能地被推入到除 level 0 层之外的其它 level。但是又不能推的过高，否则查询和 Compaction 都会出现额外的开销。因此，leveldb 指定了 `kMaxMemCompactLevel` 参数，由该参数来控制 New SSTable 最高可以被推送至哪个 level。

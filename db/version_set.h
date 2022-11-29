@@ -306,7 +306,7 @@ class VersionSet {
 
   void AppendVersion(Version* v);
 
-  /* part 1: 由构造函数直接确定，属于 DB 运行时的基本信息 */
+  /* part 1: 由构造函数直接确定，属于 DB 上下文的基本信息 */
   Env* const env_;
   const std::string dbname_;
   const Options* const options_;
@@ -320,15 +320,15 @@ class VersionSet {
   uint64_t log_number_;
   uint64_t prev_log_number_;  // 0 or backing store for memtable being compacted
 
-  /* part 3: Opened lazily, manifest 相关 */
+  /* part 3: Opened lazily, manifest 相关信息 */
   WritableFile* descriptor_file_;
   log::Writer* descriptor_log_;
 
-  /* part 4: Double Linked List */
+  /* part 4: Circular Double Linked List */
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
-  Version* current_;        // == dummy_versions_.prev_
+  Version* current_;        // == dummy_versions_.prev_, push_back
 
-  /* part 5: Compaction 相关
+  /* part 5: Compaction 相关信息
    *
    * Per-level key at which the next compaction at that level should start.
    * Either an empty string, or a valid InternalKey.
@@ -338,9 +338,6 @@ class VersionSet {
 };
 
 // A Compaction encapsulates information about a compaction.
-/** Compact 过程的上下文\n
- *
- */
 class Compaction {
  public:
   ~Compaction();

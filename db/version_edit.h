@@ -110,7 +110,7 @@ class VersionEdit {
 
   DeletedFileSet deleted_files_;  /* 记录哪些文件被删除了 */
 
-  /* 记录哪一层新增了哪些 .ldb 文件，并且使用 FileMetaData 来表示 */
+  /* 记录哪些层新增了哪些 .ldb 文件，并且使用 FileMetaData 来表示 */
   std::vector<std::pair<int, FileMetaData>> new_files_;
 };
 
