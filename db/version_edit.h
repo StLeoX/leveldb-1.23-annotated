@@ -27,7 +27,9 @@ struct FileMetaData {
   InternalKey largest;  /* 最大 Key 值 */
 };
 
-/* Version N + VersionEdit => Version N+1，VersionEdit 记录了增量 */
+/** SSTable 变更的增量信息\n
+ * Version N + VersionEdit => Version N+1
+ */
 class VersionEdit {
  public:
   VersionEdit() { Clear(); }

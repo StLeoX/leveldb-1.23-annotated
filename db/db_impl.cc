@@ -505,10 +505,13 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 /** 将 MemTable 转储到 L0-SSTable\n
  * 核心逻辑：\n
+ * 1. 根据 Immutable MemTable 构建 SSTable（调用 `BuildTable`）；\n
+ * 2. 决定新的 SSTable 的插入位置/层数（调用 `PickLevelForMemTableOutput`）；\n
+ * 3. 更新该层的元信息；\n
  *
  * @param mem 待压缩的 Immutable MemTable
- * @param edit Version 上下文
- * @param base Version 上下文
+ * @param edit 可变，写 SSTable 后需要保留变更信息（VersionEdit）
+ * @param base 不变，判断 L0-SSTable 是否存在旧版本（否则为首次构建）
  */
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {

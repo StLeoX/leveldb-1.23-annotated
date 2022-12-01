@@ -19,6 +19,13 @@ namespace leveldb {
 
 class Env;
 
+/** 建立 SSTable 时的缓存\n
+ * 包含：\n
+ * env：OS环境；\n
+ * dbname：数据库名；\n
+ * options：选项；\n
+ * cache：全局缓存，LRU方式淘汰；\n
+ */
 class TableCache {
  public:
   TableCache(const std::string& dbname, const Options& options, int entries);

@@ -14,9 +14,15 @@
 
 namespace leveldb {
 
-/*
- * BuildTable 除了 Build New SSTable 之外，还会使用 meta 指针记录下 New SSTable 的元信息以返回
- * */
+/** 从一个 MemTable 构建一个新的 SSTable\n
+ *
+ * @param dbname table_cache 的依赖项
+ * @param env table_cache 的依赖项
+ * @param options table_cache 的依赖项
+ * @param table_cache 建表过程的缓存
+ * @param iter 可变，MemTable::NewIterator，从 MemTable 取数据
+ * @param meta 出参，返回 SSTable 元信息
+ */
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
   Status s;
