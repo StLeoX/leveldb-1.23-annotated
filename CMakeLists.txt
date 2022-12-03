@@ -353,6 +353,7 @@ if(LEVELDB_BUILD_TESTS)
 
   if(NOT BUILD_SHARED_LIBS)
     leveldb_test("debug/leveldb_debug.cc")
+    leveldb_test("debug/leveldb_shell.cc")
     leveldb_test("db/autocompact_test.cc")
     leveldb_test("db/corruption_test.cc")
     leveldb_test("db/db_test.cc")
