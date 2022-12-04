@@ -1,26 +1,27 @@
-## leveldb 源码阅读
+## leveldb 源码分析
 
+核心架构：
 ![](leveldb.png)
 
-### 1. Build && Install && Debug
+### 1. QuickStart
 
-leveldb 本身是一个 Key-Value 存储引擎，因此并没有提供 `main` 入口函数，所以需要自行添加。笔者将其放到了 `debug/leveldb_debug.cc` 文件中，并在 `CMakeLists.txt` 中将其加入:
-
-```bash
-  leveldb_test("util/env_test.cc")
-  leveldb_test("util/status_test.cc")
-  leveldb_test("util/no_destructor_test.cc")
-  
-  if(NOT BUILD_SHARED_LIBS)
-    leveldb_test("debug/leveldb_debug.cc")    # 个人可执行文件
-    leveldb_test("db/autocompact_test.cc")
-```
+leveldb 本身是一个 Key-Value 存储引擎，类似于一个 C/C++ 库，并没有提供 `main` 函数。  
+编译并调试自定义的 leveldb_debug 程序，含有 `main` 函数：
 
 ```bash
 mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build .
-make && make install
-gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进行 gdb 调试
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make leveldb_debug 
+gdb leveldb_debug  # 此时 leveldb_debug 就在 build 目录下，可直接进行 gdb 调试
+```
+
+编译并运行自定义的 leveldb_shell 程序，类似于 `redis-cli` 客户端：
+
+```bash
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make leveldb_shell 
+./leveldb_shell ${db_data_dir}  # 运行 shell
 ```
 
 ### 2. leveldb 核心流程梳理
@@ -37,3 +38,9 @@ gdb leveldb_debug   # 此时 leveldb_debug 就在 build 目录下，可直接进
 10. [Compaction(01)—Minor Compaction](/debug/articles/10-minor-compaction/README.md)
 11. [leveldb 版本控制概览](/debug/articles/11-version-control-overview/README.md)
 12. [Compaction(02)—Major Compaction](/debug/articles/12-major-compaction/README.md)
+13. [Snapshot 快照与备份](/debug/articles/13-snapshot-and-backup/README.md)
+
+### 3. leveldb 源码之外
+
+leveldb 作为专注的键值对持久化存储引擎，衍生出不少存储组件。这些组件往往提出来自己的一些优化和改进，可以由此反观 leveldb 的一些性能缺陷。  
+这部分衍生内容不太会写进代码注释，主要记录在 `articles` 当中。

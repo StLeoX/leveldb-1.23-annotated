@@ -1,3 +1,5 @@
+# leveldb Minor Compaction
+
 ## Compaction Strategy
 
 > [ref: LSM Tree-Based存储引擎的compaction策略比较](https://www.jianshu.com/p/e89cd503c9ae)  

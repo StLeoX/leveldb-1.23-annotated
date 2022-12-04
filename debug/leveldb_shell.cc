@@ -9,7 +9,15 @@ using std::cout;
 using std::endl;
 using std::string;
 
-void PrintHelp() { cout << "usage: level-shell ${leveldb path}" << endl; }
+void PrintHelp() {
+  cout << "usage: leveldb_shell ${db_data_dir}" << endl;
+  cout << "supported commands:\n"
+          "- put ${key} ${value}: insert KV;\n"
+          "- get ${key}: get KV by key;\n"
+          "- del ${key}: delete KV by key;\n"
+          "- scan \"${begin_key}\" \"${end_key}\": get KVs from begin_key to end_key;\n"
+       << endl;
+}
 
 std::vector<string> Split(const string& s, char c = ' ') {
   if (s.empty()) return {};
@@ -31,8 +39,7 @@ std::vector<string> Split(const string& s, char c = ' ') {
 leveldb::Status ParseScanParameters(const string& s, string* param) {
   if (s.size() < 2 || s.front() != s.back() ||
       s.front() != '"' && s.front() != '\'') {
-    return leveldb::Status::InvalidArgument(s,
-                                            "should be formatted like \"xxx\"");
+    return leveldb::Status::InvalidArgument(s, "should be like \"key\"");
   }
   *param = s.substr(1, s.size() - 2);
   return leveldb::Status::OK();
@@ -95,13 +102,14 @@ int main(int argc, char* argv[]) {
       if (!iter->status().ok()) {
         cout << iter->status().ToString() << endl;
       }
-    } else if (commands[0] == "delete" && commands.size() == 2) {
+    } else if (commands[0] == "del" && commands.size() == 2) {
       status = db->Delete({}, commands[1]);
       if (!status.ok()) {
         cout << status.ToString() << endl;
       }
     } else {
-      cout << "invalid operate" << endl;
+      cout << "invalid command" << endl;
+      PrintHelp();
     }
   PREFIX:
     cout << ">>> " << std::flush;

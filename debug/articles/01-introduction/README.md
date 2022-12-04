@@ -27,7 +27,9 @@ LSM 组织的页是**完全顺序写入**的，每一项通过标识位表明操
 
 查找时的快速过滤能力借助于 SSTable 保存的 MetaBlock（由 Bloom Filter 实现）。
 
-## 相关产品分析
+## leveldb 生态
+
+leveldb 作为专注的键值对持久化存储引擎，衍生出不少存储组件。
 
 ### RocksDB
 
