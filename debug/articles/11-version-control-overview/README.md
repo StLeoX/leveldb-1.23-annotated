@@ -26,7 +26,8 @@ Version N + VersionEdit => Version N+1
 
 ![Alt text](images/1630899522477.png)
 
-> 关于 Version 的作用，有别于 `MVCC` 的概念，应该多从 Clickhouse 的 `VersionedCollapsingMergeTree` 的概念来思考
+> 关于 Version 的作用，就是著名的 `MVCC`机制，leveldb 的 MVCC 是 SSTable 粒度的。     
+> 类似的实现还有 Clickhouse 的 `VersionedCollapsingMergeTree`，
 > [ref](https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/versionedcollapsingmergetree)
 
 ## 2. 记录 SSTable 元数据: `FileMetaData`

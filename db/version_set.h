@@ -156,11 +156,11 @@ class Version {
   Version* prev_;     // Previous version in linked list
   int refs_;          // Number of live refs to this version
 
-  /* 每一个 level 所包含的全部 .ldb 文件，由 FileMetaData 表示 */
+  /* 核心数据：各 level 所包含的全部的 SSTable 的 FileMetaData */
   std::vector<FileMetaData*> files_[config::kNumLevels];
 
   /* Next file to compact based on seek stats.
-   * 根据 Seek 的过程决定下一次选定的 Compaction 文件和目标 level */
+   * 根据 Seek 过程决定的下一次 Compaction 的目标 SSTable 及其 level */
   FileMetaData* file_to_compact_;
   int file_to_compact_level_;
 
