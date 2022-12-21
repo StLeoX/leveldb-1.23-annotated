@@ -15,6 +15,10 @@ namespace {
 
 typedef Iterator* (*BlockFunction)(void*, const ReadOptions&, const Slice&);
 
+/** Two Level Iterator:\n
+ * - Metaindex Block Iterator: at least;\n
+ * - Data Block Iterator: maybe null;\n
+ */
 class TwoLevelIterator : public Iterator {
  public:
   TwoLevelIterator(Iterator* index_iter, BlockFunction block_function,

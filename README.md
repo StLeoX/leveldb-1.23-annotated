@@ -39,6 +39,7 @@ make leveldb_shell
 11. [leveldb 版本控制概览](/debug/articles/11-version-control-overview/README.md)
 12. [Compaction(02)—Major Compaction](/debug/articles/12-major-compaction/README.md)
 13. [Snapshot 快照与备份](/debug/articles/13-snapshot-and-backup/README.md)
+14. [leveldb Key-Value 读取流程分析](/debug/articles/14-read-path/README.md)
 
 ### 3. leveldb 源码之外
 

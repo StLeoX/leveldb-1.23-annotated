@@ -103,9 +103,9 @@ struct LEVELDB_EXPORT Options {
   // If non-null, use the specified cache for blocks.
   // If null, leveldb will automatically create and use an 8MB internal cache.
   // block 的缓存，也可以认为是查询缓存。
-  // 查询缓存是一个见仁见智的事情，有的人觉得它能够加快查询效率，也有的人认为它会使得代码需要在内存、硬盘之间的数据一致性上
-  // 花费相当多的精力，并且可能最终的效果也不是很好。比如 MySQL 8.0 就把查询缓存直接干掉了。
-  // 详见: https://dev.mysql.com/doc/refman/5.7/en/query-cache.html
+  // 查询缓存是一个见仁见智的事情。有的人觉得它能够加快查询效率，也有的人认为它会增加在内存、磁盘
+  // 间的数据一致性开销。如果缓存被频繁清空、重建的话（比如修改表后往往需要重建缓存），反而引入过多的额外开销。
+  // MySQL 的查询缓存，详见：https://dev.mysql.com/doc/refman/5.7/en/query-cache.html。
   Cache* block_cache = nullptr;
 
   // Approximate size of user data packed per block.  Note that the
