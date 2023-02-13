@@ -11,6 +11,8 @@ leveldb 的特性存在于以下几个方面：
 > [ref: 论文阅读](https://zhuanlan.zhihu.com/p/361699941)  
 > [ref: 结构分析](https://zhuanlan.zhihu.com/p/181498475)
 
+需要注意到的是，LSMTree 只是描述数据结构的理论，leveldb 在具体实现的时候是存在权衡与取舍的。
+
 LSMTree 整体架构如下：
 ![LSMTree 整体架构](images/LSMTree_arch.png)
 
@@ -49,3 +51,8 @@ HBase 也是基于 leveldb 内核，更加专注于分布式场景。
 
 HBase 的分布式架构如下：
 ![](./images/HBase_arch.webp)
+
+## related readings
+
+[LevelDB 设计与实现 - 温正湖](https://zhuanlan.zhihu.com/p/51858206)
+[LevelDB 源码剖析 - zw Huang](https://www.zhihu.com/column/c_1282795241104465920)

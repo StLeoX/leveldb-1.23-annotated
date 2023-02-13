@@ -106,8 +106,9 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
 
 最后，leveldb 将会更新全局的 Sequence Number，其值就是原来的 Sequence Number 再加上此次 `write_batch` 写入的 K-V 数量。
 
-整个写入流程可见下图:
+整个写入流程可见下图：
 
 ![Alt text](images/1628835101487.png)
 
-关于预写日志的格式与写入流程将在下篇描述。
+各个 Compaction 函数之间的调用关系：
+![](./images/compaction_function_invokes.jpg)
