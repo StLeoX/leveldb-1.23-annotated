@@ -1,0 +1,6 @@
+[book]
+authors = ["stleox"]
+language = "zh-cn"
+multilingual = false
+src = "articles"
+title = "leveldb-1.23-annotated"
