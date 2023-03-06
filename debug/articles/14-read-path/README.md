@@ -1,10 +1,14 @@
 # leveldb 读取流程分析
 
+> [ref: LevelDB 设计与实现 - 缓存机制](https://zhuanlan.zhihu.com/p/51573464)
+
 leveldb 的典型应用场景是 `写多读少`，同时 Read Path 也有分析的必要。
 
 ## Read API
 
 1. get
+
+get usecase:
 
 ```cpp
 leveldb::ReadOptions options;
@@ -16,6 +20,8 @@ std::cout << key1 << ": " << value1 << std::endl;
 如果不在内存中就需要去 SSTable 中查找，程序会走 TableCache::Get 来从 Meta Block 定位到 Data Block 的偏移，在走 Table::BlockReader 读出 Data Block，并完成解析、取出 value 值。
 
 2. scan
+
+scan usecase:
 
 ```cpp
 leveldb::ReadOptions options;
@@ -29,6 +35,8 @@ delete it;
 
 3. snapshot
 
+snapshot usecase:
+
 ```cpp
 leveldb::ReadOptions options;
 options.snapshot = db->GetSnapshot();
@@ -38,6 +46,24 @@ leveldb::Iterator* iter = db->NewIterator(options);
 delete iter;  // RAII
 db->ReleaseSnapshot(options.snapshot);  // RAII
 ```
+
+## Read path
+
+查找流程：
+
+1. `Memtable::Get()`先在 memtable 中查找；
+2. `Memtable::Get()`如果在 memtable 中未找到，并且存在 immutable memtable，就在 immutable memtable 中查找；
+3. `VersionSet::Get()`如果仍未找到，在 sstable 中查找。从 L0 开始，每个 level 上依次查找。
+
+level 上的查找细节：
+
+- 首先找出 level 上可能包含 key 的 sstable，FileMetaData 结构体内包含每个 sstable 的 key 范围。
+- L0 的查找：只能顺序遍历每个 file，因为 L0 层的 sstable 文件之间可能存在重叠的 key。即在 L0 层可能找到多个 sstable。
+- 非 L0 的查找：对 file 做二分查找，即可定位到 level 中可能包含 key 的 sstable。非 L0 上 sstable 之间 key 不会重叠，所以最多找到一个 sstable。
+- 如果该 level 上没有找到可能的 sstable，跳过。
+- 否则，对要进行查找的 sstable 获得其 Iterator，通过 seek() 检查删除标志（**称为 `SSTable Seeking`**）：
+    - kTypeValue: 数据存在，返回对应的 value。
+    - kTypeDeletion: 数据不存在，返回 data not exist。
 
 ## Table Cache
 

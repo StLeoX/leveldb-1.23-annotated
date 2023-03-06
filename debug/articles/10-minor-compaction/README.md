@@ -2,7 +2,7 @@
 
 ## Compaction Strategy
 
-> [ref: LSM Tree-Based存储引擎的compaction策略比较](https://www.jianshu.com/p/e89cd503c9ae)  
+> [ref: LSM Tree-Based 存储引擎的 compaction 策略比较](https://www.jianshu.com/p/e89cd503c9ae)  
 > [ref: Leveled Compaction in RocksDB](http://rocksdb.org.cn/doc/leveled-compaction.html)  
 > [ref: This post revealed the performance of size-tiered compaction.](https://www.scylladb.com/2018/01/17/compaction-series-space-amplification)  
 > [ref: This post revealed the performance of leveled compaction.](https://www.scylladb.com/2018/01/31/compaction-series-leveled-compaction/)
@@ -82,7 +82,7 @@ void DBImpl::MaybeScheduleCompaction() {
 
 Minor Compaction 的入口点为 `CompactMemTable()` 方法，方法内部主要调用 `WriteLevel0Table()` 方法。
 
-`WriteLevel0Table()` 主要完成了三件事情:
+`WriteLevel0Table()`主要完成了三件事情：
 
 - 根据 MemTable 构建新的 SSTable，假设该 SSTable 叫做 New SSTable;
 - 根据 New SSTable 中的 Key 与其他 level 的 Key 重叠情况，决定将 New SSTable 放入到哪一层;
@@ -90,7 +90,7 @@ Minor Compaction 的入口点为 `CompactMemTable()` 方法，方法内部主要
 
 Build SSTable 的过程可参考上一篇文章的内容，不再赘述。**新产生的 SSTable 不一定总会出现在 level 0 层**。这是因为如果 level 0 层的 SSTable 产生速度过快或者过多时，将会影响 leveldb 整体的查询效率，因为在查询的最坏情况下，我们需要遍历 level 0 中的所有 SSTable。因此，假如说 New SSTable 的 Key 和 level 2 层的 Key 没有任何重叠，并且和 level 3 之间只有少数 Key 重叠时，我们完全可以将 New SSTable 放置于 level 2 层。
 
-决策的过程在 `PickLevelForMemTableOutput()` 方法中，其实现逻辑有些绕，因此就不贴源代码了，流程图如下图所示:
+决定新产生 SSTable 的层次的过程在 `PickLevelForMemTableOutput()`方法，其实现逻辑有些绕，因此就不贴源代码了，流程图如下图所示：
 
 ![Alt text](images/1630394788892.png)
 

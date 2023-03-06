@@ -1,6 +1,8 @@
 # leveldb 的写入流程
 
-在前面一节中我们讨论了 leveldb 中的 varint 以及 Key 格式，用户所传入的 User Key 将会被封装成 MemTable Key，再加上 User Value 封装成 MemTable Entry 写入到 MemTable 中:
+> [ref: LevelDB 设计与实现 - 读写流程](https://zhuanlan.zhihu.com/p/51360281)
+
+在前面一节中我们讨论了 leveldb 中的 varint 以及 Key 格式，用户所传入的 User Key 将会被封装成 MemTable Key，再加上 User Value 封装成 MemTable Entry 写入到 MemTable 中：
 
 ![Alt text](images/1628668662510.png)
 
