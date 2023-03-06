@@ -20,9 +20,10 @@ jobs:
         with:
           mdbook-version: 'latest'
 
+      - run: cd ./debug
       - run: mdbook build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
-          publish_dir: ./debug/articles
+          publish_dir: ./book
