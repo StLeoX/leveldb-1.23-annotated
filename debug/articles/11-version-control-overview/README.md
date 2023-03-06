@@ -4,7 +4,7 @@
 
 按照流程执行的顺序，这一篇文章应该描述 Major Compaction，但是由于 leveldb 的版本控制不管是在 Major Compaction 还是 Seek Compaction 中都起到了非常决定性的作用。同时在代码中也大量涉及到了 Version、VersionSet 等内容，因此我们需要首先对 leveldb 的版本控制有一个大局上的概览，才能够更好地理解 Major Compaction 和 Seek Compaction。
 
-## 1. 为什么需要版本控制
+## 为什么需要版本控制
 
 我们现在已经知道了 leveldb 采用的是“追加写”的方式完成 K-V 的新增、修改和删除的，并且 leveldb 将磁盘中的 SSTable 采用逻辑分区的方式进行了分层处理，那么 level 和 level 所包含的 SSTable 信息就需要保存下来，以便于后续的查找和 Compaction 操作。同时，leveldb 还需要持久化元数据，例如 WAL Log Numer、Sequence Number 以及 Next SSTable File Number 等信息，保证 leveldb 在异常 Crash 之后能够完全地恢复至宕机之前的状态。
 
@@ -30,7 +30,7 @@ Version N + VersionEdit => Version N+1
 > 类似的实现还有 Clickhouse 的 `VersionedCollapsingMergeTree`，
 > [ref](https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/versionedcollapsingmergetree)
 
-## 2. 记录 SSTable 元数据: `FileMetaData`
+## 记录 SSTable 元数据： `FileMetaData`
 
 首先我们需要明确 `.ldb` 文件的元数据到底包括哪些内容，以及 leveldb 是使用什么方式记录的，答案就是 `FileMetaData`，其定义如下:
 
@@ -77,7 +77,7 @@ private:
 
 对于 SSTable 的删除，leveldb 只是简单地记录下被删除文件所在层数及其文件编号，以节省存储空间。而对于新增操作来说，我们就需要记录下新增文件的详细信息。这些数据在 Minor Compaction 中即完成，更具体地说，是在 `BuildTable()` 方法中完成的。
 
-## 3. `Version` 与 `VersionSet`
+## `Version` 与 `VersionSet`
 
 前面我们已经描述了 SSTable 元数据 `FileMetaData` 和增量修改 `VersionEdit`，那么 `VersionEdit` + `FileMetaData` 就可以得到当前数据库的一个版本，也就是 `Version`。多个 `Version` 组合起来就得到了 `VersionSet`，`VersionSet` 实现为一个双向链表。
 
@@ -113,7 +113,15 @@ private:
 
 ![Alt text](images/1630911052854.png)
 
-为了避免进程崩溃或机器宕机导致的数据丢失，leveldb 需要将这些版本信息持久化至磁盘中，也就是 Manifest 文件。Manifest 文件通常来说会有很多个，leveldb 在 CURRENT 文件中会保存最新的 Manifest 文件名称。
+## 持久化状态：`MANIFEST`
+
+从 high-level 来看，主要有两个地方需要持久化：
+
+- 初始写入，需要写入当前数据状态的信息；
+- 版本变迁写入，写入的是每一次版本变化的写入。
+
+为了避免进程崩溃或机器宕机导致的数据丢失，leveldb 需要将这些信息持久化至磁盘中，形成 Manifest 文件。  
+因为多版本机制，Manifest 文件通常来说会有很多个，所以需要一个磁盘指针指向最新的版本。因此，leveldb 在 CURRENT 文件中会保存最新的 Manifest 文件名称。
 
 Manifest 的文件内容其实就是一个又一个的 `VersionEdit`，通过 `VersionEdit::EncodeTo()` 方法将 Object 序列化成 string，然后再写入至 Manifest 文件中。
 

@@ -26,6 +26,12 @@ bool NeedsCompaction() const {
 
 ## Major Compaction 的具体过程
 
+`多路归并排序算法`，基于遍历循环方式。
+
+- 首先，我们比较所有 k 个 SSTable 的首个 key，找到其中最小的那一个。
+- 再在该最小 key 所在的 SSTable 取下一个 key，然后重复前面的过程去找最小的那个 key。
+- 这样依次循环直到遍历全部参与的 SSTable。
+
 ## Major Compaction 的优化思路
 
 > 部分思路来自于 `RocksDB` 的优化方案。

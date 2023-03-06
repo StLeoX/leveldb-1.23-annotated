@@ -78,3 +78,6 @@ HBase 的分布式架构如下：
 
 [LevelDB 设计与实现 - 温正湖](https://zhuanlan.zhihu.com/p/51858206)
 [LevelDB 源码剖析 - zw Huang](https://www.zhihu.com/column/c_1282795241104465920)
+[RocksDB Blogs](https://rocksdb.org/blog/)
+[RocksDB Document](https://rocksdb.org/docs/getting-started.html)
+[RocksDB 中文文档](http://rocksdb.org.cn/doc/Home.html)
