@@ -1,0 +1,297 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>leveldb 版本控制概览 - leveldb-1.23-annotated</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../INDEX.html"><strong aria-hidden="true">1.</strong> 目录</a></li><li class="chapter-item expanded "><a href="../01-introduction/index.html"><strong aria-hidden="true">2.</strong> leveldb 概述与 LSM-Tree</a></li><li class="chapter-item expanded "><a href="../02-data-structure/index.html"><strong aria-hidden="true">3.</strong> leveldb 中的常用数据结构</a></li><li class="chapter-item expanded "><a href="../03-varint-and-key-format/index.html"><strong aria-hidden="true">4.</strong> leveldb 中的 varint 与 Key 组成</a></li><li class="chapter-item expanded "><a href="../04-write-process/index.html"><strong aria-hidden="true">5.</strong> leveldb Key-Value 写入流程分析</a></li><li class="chapter-item expanded "><a href="../05-WAL/index.html"><strong aria-hidden="true">6.</strong> leveldb 预写日志格式及其读写流程</a></li><li class="chapter-item expanded "><a href="../06-SSTable-data-block/index.html"><strong aria-hidden="true">7.</strong> SSTable(01)—概览与 Data Block</a></li><li class="chapter-item expanded "><a href="../07-SSTable-meta-block/index.html"><strong aria-hidden="true">8.</strong> SSTable(02)—Bloom Filter 与 Meta Block</a></li><li class="chapter-item expanded "><a href="../08-SSTable-index/index.html"><strong aria-hidden="true">9.</strong> SSTable(03)—SSTable 之索引</a></li><li class="chapter-item expanded "><a href="../09-SSTable-table-builder/index.html"><strong aria-hidden="true">10.</strong> SSTable(04)—Table Builder</a></li><li class="chapter-item expanded "><a href="../10-minor-compaction/index.html"><strong aria-hidden="true">11.</strong> Compaction(01)—Minor Compaction</a></li><li class="chapter-item expanded "><a href="../11-version-control-overview/index.html" class="active"><strong aria-hidden="true">12.</strong> leveldb 版本控制概览</a></li><li class="chapter-item expanded "><a href="../12-major-compaction/index.html"><strong aria-hidden="true">13.</strong> Compaction(02)—Major Compaction</a></li><li class="chapter-item expanded "><a href="../13-snapshot-and-backup/index.html"><strong aria-hidden="true">14.</strong> Snapshot 快照与备份</a></li><li class="chapter-item expanded "><a href="../14-read-path/index.html"><strong aria-hidden="true">15.</strong> leveldb Key-Value 读取流程分析</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">leveldb-1.23-annotated</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="leveldb-版本控制概览"><a class="header" href="#leveldb-版本控制概览">leveldb 版本控制概览</a></h1>
+<p>在上一篇文章中我们明确了 Minor Compaction 的过程，本质上就是根据 Immutable MemTable 构建出 New SSTable，然后根据 New SSTable 和其它低层 level 之间 User Key 的重叠情况，决定将 New SSTable 逻辑地“推送”至具体的一个 level 中。</p>
+<p>按照流程执行的顺序，这一篇文章应该描述 Major Compaction，但是由于 leveldb 的版本控制不管是在 Major Compaction 还是 Seek Compaction 中都起到了非常决定性的作用。同时在代码中也大量涉及到了 Version、VersionSet 等内容，因此我们需要首先对 leveldb 的版本控制有一个大局上的概览，才能够更好地理解 Major Compaction 和 Seek Compaction。</p>
+<h2 id="为什么需要版本控制"><a class="header" href="#为什么需要版本控制">为什么需要版本控制</a></h2>
+<p>我们现在已经知道了 leveldb 采用的是“追加写”的方式完成 K-V 的新增、修改和删除的，并且 leveldb 将磁盘中的 SSTable 采用逻辑分区的方式进行了分层处理，那么 level 和 level 所包含的 SSTable 信息就需要保存下来，以便于后续的查找和 Compaction 操作。同时，leveldb 还需要持久化元数据，例如 WAL Log Numer、Sequence Number 以及 Next SSTable File Number 等信息，保证 leveldb 在异常 Crash 之后能够完全地恢复至宕机之前的状态。</p>
+<p>leveldb 是通过版本控制的方式来记录上述关键信息的，其过程和 Git-SCM 工作流程非常之类似:</p>
+<ul>
+<li>初始化一个 Empty Repo（DB 初始化）;</li>
+<li>对文件进行新增、修改和删除时，Git 会记录下这一增量的操作（新增一个 VersionEdit）;</li>
+<li>根据最初的版本和增量的 commit，可以得到现有版本（Version）;</li>
+<li>根据最初的版本和所有的 commit 可以得到所有的版本（VersionSet）;</li>
+<li>使用 HEAD 指针指向最新的版本（CURRENT）；</li>
+</ul>
+<p>每当我们新增或者是删除一个 SSTable 时，都是一个增量操作，leveldb 使用 VersionEdit 进行记录，也就是说，我们可以根据某一个版本的 Version 以及 VersionEdit 来推测得到下一个版本:</p>
+<pre><code class="language-bash">Version N + VersionEdit =&gt; Version N+1
+</code></pre>
+<p>那么，当我们把所有的版本都扔到一个集合中，比如 Version 1、Version 2、...、Version N，就得到了所有版本的集合，也就是 VersionSet，如下图所示:</p>
+<p><img src="images/1630899522477.png" alt="Alt text" /></p>
+<blockquote>
+<p>关于 Version 的作用，就是著名的 <code>MVCC</code>机制，leveldb 的 MVCC 是 SSTable 粒度的。<br />
+类似的实现还有 Clickhouse 的 <code>VersionedCollapsingMergeTree</code>，
+<a href="https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/versionedcollapsingmergetree">ref</a></p>
+</blockquote>
+<h2 id="记录-sstable-元数据-filemetadata"><a class="header" href="#记录-sstable-元数据-filemetadata">记录 SSTable 元数据： <code>FileMetaData</code></a></h2>
+<p>首先我们需要明确 <code>.ldb</code> 文件的元数据到底包括哪些内容，以及 leveldb 是使用什么方式记录的，答案就是 <code>FileMetaData</code>，其定义如下:</p>
+<pre><code class="language-cpp">/* 记录了一个 SSTable 的元信息 */
+struct FileMetaData {
+    FileMetaData() : refs(0), allowed_seeks(1 &lt;&lt; 30), file_size(0) {}
+    
+    int refs;             /* 引用计数，表示当前 SSTable 被多少个 Version 所引用 */
+    int allowed_seeks;    /* 当前 SSTable 允许被 Seek 的次数 */
+    uint64_t number;      /* SSTable 文件记录编号 */
+    uint64_t file_size;   /* SSTable 文件大小 */
+    InternalKey smallest; /* 最小 Key 值 */
+    InternalKey largest;  /* 最大 Key 值 */
+};
+</code></pre>
+<p>除了 <code>.ldb</code> 文件的编号和大小以外，leveldb 还会额外地记录下当前 SSTable 中的最小 <code>InternalKey</code> 和最大 <code>InternalKey</code>，一方面用于数据查询，另一方面则用为 Compaction 提供帮助。</p>
+<p>一个 <code>FileMetaData</code> 表示了一个 SSTable，那么如果我们使用两个数组来记录下每一个 level 的新增和删除的话，就得到了版本变更的一条 commit。事实上，leveldb 也是如此设计的:</p>
+<pre><code class="language-cpp">class VersionEdit {
+public:
+    /* 将 VersionEdit 序列化成 string，内部使用 varint */
+    void EncodeTo(std::string* dst) const;
+    Status DecodeFrom(const Slice&amp; src);
+private:
+    /* 其中的 pair 为 level + 文件编号，表示被删除的 .ldb 文件 */
+    typedef std::set&lt;std::pair&lt;int, uint64_t&gt;&gt; DeletedFileSet;
+  
+    std::string comparator_;        /* Comparator 名称 */
+    uint64_t log_number_;           /* 日志编号 */
+    uint64_t prev_log_number_;      /* 前一个日志编号 */
+    uint64_t next_file_number_;     /* 下一个文件编号 */
+    SequenceNumber last_sequence_;  /* 最大序列号 */
+  
+    DeletedFileSet deleted_files_;  /* 记录哪些文件被删除了 */
+    
+    /* 记录哪一层新增了哪些 .ldb 文件，并且使用 FileMetaData 来表示 */
+    std::vector&lt;std::pair&lt;int, FileMetaData&gt;&gt; new_files_;
+};
+</code></pre>
+<p>对于 SSTable 的删除，leveldb 只是简单地记录下被删除文件所在层数及其文件编号，以节省存储空间。而对于新增操作来说，我们就需要记录下新增文件的详细信息。这些数据在 Minor Compaction 中即完成，更具体地说，是在 <code>BuildTable()</code> 方法中完成的。</p>
+<h2 id="version-与-versionset"><a class="header" href="#version-与-versionset"><code>Version</code> 与 <code>VersionSet</code></a></h2>
+<p>前面我们已经描述了 SSTable 元数据 <code>FileMetaData</code> 和增量修改 <code>VersionEdit</code>，那么 <code>VersionEdit</code> + <code>FileMetaData</code> 就可以得到当前数据库的一个版本，也就是 <code>Version</code>。多个 <code>Version</code> 组合起来就得到了 <code>VersionSet</code>，<code>VersionSet</code> 实现为一个双向链表。</p>
+<pre><code class="language-cpp">class Version {
+private:
+    explicit Version(VersionSet* vset) {}
+    
+    /* 标准的双向链表实现 */
+    Version* next_;
+    Version* prev_;
+    int refs_;
+    
+    /* 每一个 level 所包含的全部 .ldb 文件，由 FileMetaData 表示 */
+    std::vector&lt;FileMetaData*&gt; files_[config::kNumLevels];
+    
+    /* Next file to compact based on seek stats.
+     * 根据 Seek 的过程决定下一次选定的 Compaction 文件和目标 level */
+    FileMetaData* file_to_compact_;
+    int file_to_compact_level_;
+    
+    /* Size Compaction 相关 */
+    double compaction_score_;
+    int compaction_level_;
+};
+</code></pre>
+<p>除开与双向链表相关的两个指针，以及与 Compaction 相关的字段以外，<code>Version</code> 中最为重要的字段就是 <code>files_</code> 了。该字段是一个静态数组，数组内的元素类型为 <code>std::vector</code>，因此 <code>files_</code> 中保存了每一层的每一个 SSTable 元数据，可以说是 leveldb 的一个“数据骨架快照”。</p>
+<p><code>VersionSet</code> 是一个由 <code>Version</code> 所组成的双向链表，并且其内部使用了一个虚拟头结点，即 <code>dummy_versions_</code>。</p>
+<p><code>FileMetaData</code>、<code>Version</code> 以及 <code>VersionSet</code> 之间的关联关系可以使用下图大致表示:</p>
+<p><img src="images/1630911052854.png" alt="Alt text" /></p>
+<h2 id="持久化状态manifest"><a class="header" href="#持久化状态manifest">持久化状态：<code>MANIFEST</code></a></h2>
+<p>从 high-level 来看，主要有两个地方需要持久化：</p>
+<ul>
+<li>初始写入，需要写入当前数据状态的信息；</li>
+<li>版本变迁写入，写入的是每一次版本变化的写入。</li>
+</ul>
+<p>为了避免进程崩溃或机器宕机导致的数据丢失，leveldb 需要将这些信息持久化至磁盘中，形成 Manifest 文件。<br />
+因为多版本机制，Manifest 文件通常来说会有很多个，所以需要一个磁盘指针指向最新的版本。因此，leveldb 在 CURRENT 文件中会保存最新的 Manifest 文件名称。</p>
+<p>Manifest 的文件内容其实就是一个又一个的 <code>VersionEdit</code>，通过 <code>VersionEdit::EncodeTo()</code> 方法将 Object 序列化成 string，然后再写入至 Manifest 文件中。</p>
+<p>到这里，其实已经足以让我们继续梳理 Major Compactiuon 了，因此关于版本控制的更多细节和设计巧思，就不在本文中详细展开了。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../10-minor-compaction/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../12-major-compaction/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../10-minor-compaction/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../12-major-compaction/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

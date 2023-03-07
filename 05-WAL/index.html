@@ -1,0 +1,278 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>leveldb 预写日志格式及其读写流程 - leveldb-1.23-annotated</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../INDEX.html"><strong aria-hidden="true">1.</strong> 目录</a></li><li class="chapter-item expanded "><a href="../01-introduction/index.html"><strong aria-hidden="true">2.</strong> leveldb 概述与 LSM-Tree</a></li><li class="chapter-item expanded "><a href="../02-data-structure/index.html"><strong aria-hidden="true">3.</strong> leveldb 中的常用数据结构</a></li><li class="chapter-item expanded "><a href="../03-varint-and-key-format/index.html"><strong aria-hidden="true">4.</strong> leveldb 中的 varint 与 Key 组成</a></li><li class="chapter-item expanded "><a href="../04-write-process/index.html"><strong aria-hidden="true">5.</strong> leveldb Key-Value 写入流程分析</a></li><li class="chapter-item expanded "><a href="../05-WAL/index.html" class="active"><strong aria-hidden="true">6.</strong> leveldb 预写日志格式及其读写流程</a></li><li class="chapter-item expanded "><a href="../06-SSTable-data-block/index.html"><strong aria-hidden="true">7.</strong> SSTable(01)—概览与 Data Block</a></li><li class="chapter-item expanded "><a href="../07-SSTable-meta-block/index.html"><strong aria-hidden="true">8.</strong> SSTable(02)—Bloom Filter 与 Meta Block</a></li><li class="chapter-item expanded "><a href="../08-SSTable-index/index.html"><strong aria-hidden="true">9.</strong> SSTable(03)—SSTable 之索引</a></li><li class="chapter-item expanded "><a href="../09-SSTable-table-builder/index.html"><strong aria-hidden="true">10.</strong> SSTable(04)—Table Builder</a></li><li class="chapter-item expanded "><a href="../10-minor-compaction/index.html"><strong aria-hidden="true">11.</strong> Compaction(01)—Minor Compaction</a></li><li class="chapter-item expanded "><a href="../11-version-control-overview/index.html"><strong aria-hidden="true">12.</strong> leveldb 版本控制概览</a></li><li class="chapter-item expanded "><a href="../12-major-compaction/index.html"><strong aria-hidden="true">13.</strong> Compaction(02)—Major Compaction</a></li><li class="chapter-item expanded "><a href="../13-snapshot-and-backup/index.html"><strong aria-hidden="true">14.</strong> Snapshot 快照与备份</a></li><li class="chapter-item expanded "><a href="../14-read-path/index.html"><strong aria-hidden="true">15.</strong> leveldb Key-Value 读取流程分析</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">leveldb-1.23-annotated</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="leveldb-预写日志格式及其读写流程"><a class="header" href="#leveldb-预写日志格式及其读写流程">leveldb 预写日志格式及其读写流程</a></h1>
+<p>对于存储引擎来说，为了能够加快写入速度，通常会将数据写入至位于内存的缓冲区中，然后由后台线程或者是其它方式再持久化至底层硬盘中。但是这样一来会有数据丢失的风险，因为内存中的数据是易失的。因此绝大多数存储引擎都是采用 WAL (Write Ahead Log) 的方式，首先将数据顺序地写入预写日志文件中，再去处理核心写入逻辑，以防止数据在节点宕机时的丢失。</p>
+<p>InnoDB 存储的 redo log 就是一种典型的 WAL 实现，由于预写日志不可能任其无限增长，所以 InnoDB 使用了“环形数组”的方式进行覆盖写入，单个 redo log 的默认大小为 48MB。leveldb 并没有采用循环写入的方式实现，而是使用创建新的日志文件并删除旧有的日志文件实现。</p>
+<p>leveldb 为了优化读取性能，将预写日志文件切割成了大小为 32KB 的连续 Block，并且每一个预写日志的大小为 4MB，和 MemTable 的默认大小保持一致。每一个 Block 中会包含多个连续的日志记录，每一个日志记录除了 User Key 和 User Value 以外，还会包括校验和（checksum）、长度以及记录类型等信息。预写日志格式如下图所示:</p>
+<p><img src="images/1629103525717.png" alt="Alt text" /></p>
+<p>Log Type 是一个比较特殊的字段，是一个枚举值，定义如下:</p>
+<pre><code class="language-cpp">enum RecordType {
+  kZeroType = 0,        /* 预留给预分配文件 */
+  kFullType = 1,        /* 当前 Record 包含完整的日志记录 */
+  kFirstType = 2,       /* 当前 Record 包含日志记录的起始部分 */
+  kMiddleType = 3,      /* 当前 Record 包含日志记录的中间部分 */
+  kLastType = 4         /* 当前 Record 包含日志记录的结束部分 */
+};
+</code></pre>
+<p>设计 Log Type 的原因在于 User Key 和 User Value 的大小可能会超过 32KB，此时 Record 就需要跨 Block 存储。此时 leveldb 就会将该条日志记录切分成多条 Log Record，Log Type 就是用来记录当前 Record 属于切分后 Record 的哪一个部分的，如下图所示:</p>
+<p><img src="images/1628838954928.png" alt="Alt text" /></p>
+<h2 id="1-预写日志写入流程"><a class="header" href="#1-预写日志写入流程">1. 预写日志写入流程</a></h2>
+<p>我们如何写入一个数据决定了如何读取一个数据，因此不管是在设计业务应用还是在设计系统应用时，可以先从写入方式入手。</p>
+<p>与预写日志相关的类主要包括 3 个: <code>WritableFile</code>、<code>Writer</code> 以及 <code>PosixWritableFile</code>。其中 <code>WritableFile</code> 看名字就可以知道是一个 Interface，并且 <code>PosixWritableFile</code> 实现了该接口。而 <code>Writer</code> 则依赖于 <code>WritableFile</code>，它们之间的关系可见下图:</p>
+<p><img src="images/1629100718787.png" alt="Alt text" /></p>
+<p>当我们调用 <code>DBImpl::Write()</code> 写入 Batch 数据时，在确认 DB 的写入状态以后将会首先调用 <code>Writer::AddRecord()</code> 方法写入预写日志，接下来就来看具体的写入过程。</p>
+<p>首先，leveldb 取出 <code>slice</code> 里面的指针数据和长度，这个 <code>slice</code> 其实就是 <code>WriteBatch.rep_</code>，具体格式可见上一篇分析。而后，初始化 <code>begin</code> 标志位为 <code>true</code>，用于表示这是一条日志的起始位置。在写入过程中还会有一个 <code>end</code> 标志位，表示是否为日志的结束位置，那么根据 <code>begin</code> 和 <code>end</code> 这两个标志位我们就可以决定 <code>RecordType</code> 了。比如当 <code>begin</code> 和 <code>end</code> 都为 <code>true</code> 时，那么 <code>RecordType</code> 应为 <code>Full</code>。</p>
+<pre><code class="language-cpp">const char* ptr = slice.data();     /* 获取 WriteBatch 底层数据 */ 
+size_t left = slice.size();         /* 剩余写入数据长度 */
+Status s;               
+bool begin = true;                  /* 标志位 */
+</code></pre>
+<p>紧接着，当剩余写入长度，也就是 <code>left</code> 大于 0 并且写入过程没有出错的话，就会循环写入数据。在循环写入时，由于一个 Block 的容量为 32KB，因此需要确定还有多少空间可以写入。如果说剩余的空间小于 <code>kHeaderSize</code>，也就是 Record Header（7 字节）的大小时，那么就需要开辟新的 Block 写入: <strong>Record Header 不能跨 Block 写入</strong>。</p>
+<pre><code class="language-cpp">/* 计算当前 Block 剩余写入 */
+const int leftover = kBlockSize - block_offset_;
+assert(leftover &gt;= 0);
+/* 如果当前 Block 不足以写入 Record Header 的话，需要使用新的 Block */
+if (leftover &lt; kHeaderSize) {
+    // Switch to a new block
+    if (leftover &gt; 0) {
+        // Fill the trailer (literal below relies on kHeaderSize being 7)
+        /* 如果还有剩余空间的话，用 0 进行补齐 */
+        static_assert(kHeaderSize == 7, &quot;&quot;);
+        dest_-&gt;Append(Slice(&quot;\x00\x00\x00\x00\x00\x00&quot;, leftover));
+    }
+    /* Block 写入偏移量清零，向新的 Block 中写入 */
+    block_offset_ = 0;
+}
+</code></pre>
+<p>在确定了 <code>block_offset_</code> 以后，就需要做另一个非常重要的工作: 确定 <code>RecordType</code>。也就是使用 <code>begin</code> 和 <code>end</code> 这两个标志位来完成:</p>
+<pre><code class="language-cpp">/* 计算剩余写入容量 */
+const size_t avail = kBlockSize - block_offset_ - kHeaderSize;
+/* 计算片段长度 */
+const size_t fragment_length = (left &lt; avail) ? left : avail;
+
+RecordType type;
+const bool end = (left == fragment_length);
+if (begin &amp;&amp; end) {   /* 刚好装下 */
+    type = kFullType;
+} else if (begin) {   /* 一个 Block 无法装下 */
+    type = kFirstType;
+} else if (end) {     /* 能装下上一份数据 */
+    type = kLastType;
+} else {              /* 其它的中间状态 */
+    type = kMiddleType;
+}
+</code></pre>
+<p>最后，调用 <code>EmitPhysicalRecord()</code> 方法，这是预写日志真正被写入的地方，并更新数据指针、剩余长度以及 <code>begin</code> 标志位:</p>
+<pre><code class="language-cpp">s = EmitPhysicalRecord(type, ptr, fragment_length);
+ptr += fragment_length;
+left -= fragment_length;
+begin = false;
+</code></pre>
+<p>在 <code>EmitPhysicalRecord()</code> 方法中，会计算数据的 CRC32、数据长度等信息，并调用 <code>WritableFile</code> 接口的 <code>Append()</code> 和 <code>Flush()</code> 方法将数据写入至内核缓冲区中，而是否进行 <code>fsync()</code> 取决于用户的配置，也就是 <code>Options.sync</code> 字段。</p>
+<h2 id="2-预写日志读取流程"><a class="header" href="#2-预写日志读取流程">2. 预写日志读取流程</a></h2>
+<p>在写入预写日志时 leveldb 简单地使用 Block + Record 的方式进行写入，读取过程除了最基本的读取文件内容以外，还需要校验 CRC32、根据 <code>RecordType</code> 决定读取策略。因此，日志读取的过程要比写入过程更加复杂。<br />
+实际上，可以将 log::Reader 和 log::Writer 的API对照起来看。<br />
+因为读取到的WAL数据可能已经遭到破坏，所以需要对读取行为的异常进行处理，集中在<code>ReportDrop</code>函数。<br />
+读取行为的主体<code>ReadPhysicalRecord</code>和一般的读文件函数一致，采用 while(!EOF) 循环。先读出Header中的元数据如type，再去读payload，期间注意进行CRC校验。<br />
+一个有意思的点是对于非<code>kFullType</code>的Record的读取，因为<strong>Block之间也是连续存储</strong>的，所以可以统一地构造Result Slice并返回。</p>
+<h2 id="3-预写日志的清理"><a class="header" href="#3-预写日志的清理">3. 预写日志的清理</a></h2>
+<p>预写日志的大小不可能无限制地增长，因此，要么采用后台线程定时清理，要么将清理逻辑分散在其它业务逻辑中，当触发了某一个条件时对其进行清理。leveldb 采用了后者的实现方式，即将预写日志的删除放在了关键节点中，由系统运行时进行触发。</p>
+<p>预写日志的清理由 <code>RemoveObsoleteFiles()</code> 方法进行，并且主要发生在两个部分，一个是在调用 <code>Open()</code> 方法打开 DB 时，leveldb 将会清理不再需要的文件，其中就包括了预写日志文件。另一个则是发生在 Compaction 时。</p>
+<p>当完成 Minor Compaction 之后，Immutable Mmetable 已经被持久化至硬盘中，那么此前的一些预写日志就可以被删除了，因为这部分数据不会在宕机时丢失。而在进行 Major Compaction 时，将会由后台线程完成 Compaction 的动作，因此可以借着这一异步任务来完成预写日志的清理，不必再开辟新的线程。</p>
+<p>最后需要注意的是，<strong>WAL需要保留上一个预写日志</strong>，以防止丢WAL本身。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../04-write-process/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../06-SSTable-data-block/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../04-write-process/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../06-SSTable-data-block/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
